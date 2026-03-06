@@ -1,45 +1,34 @@
 name: Prisma Cloud IaC Scan
+
 on:
   push:
     branches:
       - development
-  
+  pull_request:
+    branches:
+      - development
+  workflow_dispatch: # Adds a button to run it manually during the demo
+
 jobs:
   kubernetes-scan:
     runs-on: ubuntu-latest
-    strategy:
-      # If true prevents execution of other jobs if one job fails
-      fail-fast: false
-
     steps:
-      - name: Checkout
-        # Checks-out your repository under $GITHUB_WORKSPACE, so your workflow can access it
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Run Kubernetes Scan
-        id: Bridgecrew
-        # Scan for IaC, vulnerabilities and license issues in open source packages and images, and CI/CD misconfigurations.
-        uses: bridgecrewio/bridgecrew-action@master
+      - name: Install Checkov
+        run: pip install checkov
+        
+      - name: Run Prisma Cloud Scan via CLI
         env:
-          PRISMA_API_URL: https://api2.prismacloud.io
-        with:
-          # Environment variable name of the API key from Prisma Cloud
-          api-key: ${{ secrets.PC_API_KEY }} 
-          # Root directory to scan
-          directory: "${{ github.workspace }}/k8s-manifests"
-          # If True runs checks without failing build
-          soft_fail: false
-          # Run on a specific infrastructure
-          framework: kubernetes
-          # The format of the output - json - cli - sarif
-          output_format: cli,sarif
-          # The path for the file output
-          output_file_path: console,results.sarif
-          # Display only failed checks if true
-          quiet: true
-          # Set log level
-          log_level: WARNING
-          # Filter scan to run on all check but a specific check identifier(blacklist)
-          #skip_check: LOW,MEDIUM
-          # Filter scan to run only on a specific check identifier
-          check: CKV_K8S*
+          PRISMA_API_URL: https://api2.prismacloud.io # Verify this matches your specific tenant URL
+          BC_SOURCE: githubActions
+        run: |
+          checkov -d ${{ github.workspace }}/k8s-manifests \
+            --prisma-api-url $PRISMA_API_URL \
+            --bc-api-key ${{ secrets.PC_API_KEY }} \
+            --repo-id ${{ github.repository }} \
+            --branch ${{ github.ref_name }} \
+            --use-enforcement-rules \
+            -o cli -o sarif \
+            --output-file-path console,results.sarif
