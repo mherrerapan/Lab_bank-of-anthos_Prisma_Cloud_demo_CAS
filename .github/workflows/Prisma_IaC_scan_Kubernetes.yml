@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Checkout
         # Checks-out your repository under $GITHUB_WORKSPACE, so your workflow can access it
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run Kubernetes Scan
         id: Bridgecrew
@@ -24,7 +24,7 @@ jobs:
           PRISMA_API_URL: https://api2.prismacloud.io
         with:
           # Environment variable name of the API key from Prisma Cloud
-          api-key: ${{ secrets.BC_API_KEY }} 
+          api-key: ${{ secrets.PC_API_KEY }} 
           # Root directory to scan
           directory: "${{ github.workspace }}/k8s-manifests"
           # If True runs checks without failing build
