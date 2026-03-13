@@ -1,0 +1,6 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  VulnerableLocalUser:
+    Type: AWS::IAM::User # VULNERABLE: Triggers the GIA-03 block
+    Properties:
+      UserName: LocalDemoUser

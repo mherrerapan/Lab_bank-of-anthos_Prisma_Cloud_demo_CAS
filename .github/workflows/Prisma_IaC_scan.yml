@@ -10,7 +10,7 @@ on:
   workflow_dispatch: # Adds a button to run it manually during the demo
 
 jobs:
-  kubernetes-scan:
+  IaC-scan:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -26,7 +26,7 @@ jobs:
         run: |
           # --quiet \ Display only failed checks
           # --framework \ # Run on a specific infrastructure
-          checkov -d ${{ github.workspace }}/dockerfile-vulnerable \
+          checkov -d ${{ github.workspace }}/CF-templates-GCM-22_Server_Hardening \
             --prisma-api-url $PRISMA_API_URL \
             --bc-api-key ${{ secrets.PC_API_KEY }} \
             --repo-id ${{ github.repository }} \

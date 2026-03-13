@@ -1,0 +1,11 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  VulnerableBucket:
+    Type: AWS::S3::Bucket
+    # VULNERABLE: No BucketPolicy attached to deny unencrypted HTTP traffic
+    
+  VulnerableDB:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      Engine: aurora-postgresql
+      # VULNERABLE: EnableIAMDatabaseAuthentication is missing/false
