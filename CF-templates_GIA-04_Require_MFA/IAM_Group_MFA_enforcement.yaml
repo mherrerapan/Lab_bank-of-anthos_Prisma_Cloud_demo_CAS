@@ -14,4 +14,4 @@ Resources:
                 Resource: "*"
                 Condition:
                   BoolIfExists:
-                    aws:MultiFactorAuthPresent: "true" # SECURE: MFA Condition matches policy
+                    aws:MultiFactorAuthPresent: "false" # SECURE: MFA Condition matches policy
