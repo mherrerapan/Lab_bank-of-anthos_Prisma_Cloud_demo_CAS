@@ -2,7 +2,13 @@ AWSTemplateFormatVersion: '2010-09-09'
 Resources:
   SecureBucket:
     Type: AWS::S3::Bucket
-
+    Properties:
+      BucketName:!Sub "amzn-s3-demo-logging-bucket-${AWS::AccountId}"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+              
   SecureBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:

@@ -25,8 +25,10 @@ jobs:
           BC_SOURCE: githubActions
         run: |
           # --quiet \ Display only failed checks
-          # --framework \ # Run on a specific infrastructure
+          # --framework \ # Run on a specific infrastructure#
+          # --policy-metadata-filter "policy.label=deloitte_demo_policies_iac" \ # Evaluate a specific group of policies
           checkov -d ${{ github.workspace }}/CF-templates-GCM-22_Server_Hardening \
+            --policy-metadata-filter "policy.label=demo-policies"
             --prisma-api-url $PRISMA_API_URL \
             --bc-api-key ${{ secrets.PC_API_KEY }} \
             --repo-id ${{ github.repository }} \
