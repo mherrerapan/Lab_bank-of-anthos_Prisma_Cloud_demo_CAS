@@ -1,0 +1,383 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: SSDLC Compliant Demo Application Infrastructure
+
+Resources:
+  # ==========================================
+  # 1. NETWORKING (VPC & Subnets)
+  # ==========================================
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+
+  Subnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:!Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone:!Select [0,!GetAZs 'us-east-1']
+
+  Subnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:!Ref VPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone:!Select [1,!GetAZs 'us-east-1']
+
+  Subnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:!Ref VPC
+      CidrBlock: 10.0.3.0/24
+      AvailabilityZone:!Select [2,!GetAZs 'us-east-1']
+
+  # ==========================================
+  # 2. SECURITY CONTROLS: S3 LOGGING (GSC-04)
+  # ==========================================
+  # We must create the bucket securely before the ALB can use it.
+  ALBLoggingBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:!Sub "amzn-s3-demo-logging-bucket-${AWS::AccountId}"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  # GSC-04: Enforce Secure Transport (HTTPS Only)
+  ALBLoggingBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:!Ref ALBLoggingBucket
+      PolicyDocument:
+        Statement:
+          - Action: s3:*
+            Effect: Deny
+            Principal: "*"
+            Resource:!Sub "arn:aws:s3:::${ALBLoggingBucket}/*"
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+
+  # ==========================================
+  # 3. LOAD BALANCING (ALB & Target Groups)
+  # ==========================================
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: TestALB
+      Subnets:
+        -!Ref Subnet1
+        -!Ref Subnet2
+        -!Ref Subnet3
+      Scheme: internal
+      LoadBalancerAttributes:
+        - Key: deletion_protection.enabled
+          Value: false
+        - Key: access_logs.s3.enabled
+          Value: true
+        - Key: access_logs.s3.bucket
+          Value:!Ref ALBLoggingBucket # Connected to secure bucket
+      Tags:
+        - Key: stage
+          Value: PDN
+      Type: application
+
+  RegisterTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: RegisterTG
+      Port: 80
+      Protocol: HTTP
+      VpcId:!Ref VPC
+      TargetType: ip
+
+  ReviewTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: ReviewTG
+      Port: 80
+      Protocol: HTTP
+      VpcId:!Ref VPC
+      TargetType: ip
+
+  Listener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn:!Ref RegisterTargetGroup
+      LoadBalancerArn:!Ref LoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  RegisterRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - Type: forward
+          TargetGroupArn:!Ref RegisterTargetGroup
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - /Register/*
+      ListenerArn:!Ref Listener
+      Priority: 1
+
+  ReviewRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - Type: forward
+          TargetGroupArn:!Ref ReviewTargetGroup
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - /Review/*
+      ListenerArn:!Ref Listener
+      Priority: 2
+
+  # ==========================================
+  # 4. MICROSERVICES (ECS Fargate)
+  # ==========================================
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: MyECSCluster
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
+
+  RegisterTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: RegisterService
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: 512
+      Memory: 512
+      ContainerDefinitions:
+        - Name: RegisterContainer
+          Image: my-register-service-image
+          PortMappings:
+            - ContainerPort: 80
+      Tags:
+        - Key: WorkLoad
+          Value: High
+
+  ReviewTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: ReviewService
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: 256
+      Memory: 512
+      ContainerDefinitions:
+        - Name: ReviewContainer
+          Image: my-review-service-image
+          PortMappings:
+            - ContainerPort: 80
+
+  RegisterService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster:!Ref ECSCluster
+      DesiredCount: 3
+      LaunchType: FARGATE
+      TaskDefinition:!Ref RegisterTaskDefinition
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets:
+            -!Ref Subnet1
+            -!Ref Subnet2
+            -!Ref Subnet3
+          AssignPublicIp: DISABLED
+      LoadBalancers:
+        - ContainerName: RegisterContainer
+          ContainerPort: 80
+          TargetGroupArn:!Ref RegisterTargetGroup
+      Tags:
+        - Key: Priority
+          Value: 1
+
+  ReviewService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster:!Ref ECSCluster
+      DesiredCount: 3
+      LaunchType: FARGATE
+      TaskDefinition:!Ref ReviewTaskDefinition
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets:
+            -!Ref Subnet1
+            -!Ref Subnet2
+            -!Ref Subnet3
+          AssignPublicIp: DISABLED
+      LoadBalancers:
+        - ContainerName: ReviewContainer
+          ContainerPort: 80
+          TargetGroupArn:!Ref ReviewTargetGroup
+
+  # ==========================================
+  # 5. DATABASES (RDS) - GSC-04
+  # ==========================================
+  MyRDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: MyRDSInstance
+      Engine: postgres
+      MasterUsername: admin
+      MasterUserPassword: password # Note: In production, use Secrets Manager
+      DBInstanceClass: db.t3.medium
+      AllocatedStorage: 20
+      MultiAZ: false
+      BackupRetentionPeriod: 7
+      StorageEncrypted: true
+      EnableIAMDatabaseAuthentication: true # GSC-04 Compliant
+      VPCSecurityGroups:
+      KmsKeyId: arn:aws:kms:us-east-1:012345678910:key/this-is-another-key
+      Tags:
+        - Key: TypeInfo
+          Value: PII
+        - Key: Team
+          Value: Operations
+
+  RDSReadReplica:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      SourceDBInstanceIdentifier:!Ref MyRDSInstance
+      DBInstanceClass: db.t3.medium
+      Engine: postgres
+      VPCSecurityGroups:
+      AvailabilityZone:!Select [1,!GetAZs 'us-east-1']
+      Tags:
+        - Key: Team
+          Value: Operations
+        - Key: TypeInfo
+          Value: OTHERS
+
+  # ==========================================
+  # 6. API GATEWAY (Private REST APIs)
+  # ==========================================
+  VPCLink:
+    Type: AWS::ApiGateway::VpcLink
+    Properties:
+      Name: MyVpcLink
+      TargetArns:
+        -!Ref LoadBalancer
+
+  ApiGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: PrivateApiGateway
+      EndpointConfiguration:
+        Types: PRIVATE
+      Policy:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: execute-api:Invoke
+            Resource: '*'
+
+  ApiResourceRegister:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:!GetAtt ApiGateway.RootResourceId
+      PathPart: register
+      RestApiId:!Ref ApiGateway
+
+  ApiResourceReview:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:!GetAtt ApiGateway.RootResourceId
+      PathPart: review
+      RestApiId:!Ref ApiGateway
+
+  ApiMethodRegister:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: POST
+      ResourceId:!Ref ApiResourceRegister
+      RestApiId:!Ref ApiGateway
+      Integration:
+        Type: HTTP_PROXY
+        IntegrationHttpMethod: POST
+        Uri:!Sub "http://${LoadBalancer.DNSName}/Register"
+        ConnectionType: VPC_LINK
+        ConnectionId:!Ref VPCLink
+
+  ApiMethodReview:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      ResourceId:!Ref ApiResourceReview
+      RestApiId:!Ref ApiGateway
+      Integration:
+        Type: HTTP_PROXY
+        IntegrationHttpMethod: GET
+        Uri:!Sub "http://${LoadBalancer.DNSName}/Review"
+        ConnectionType: VPC_LINK
+        ConnectionId:!Ref VPCLink
+
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - ApiMethodRegister
+      - ApiMethodReview
+    Properties:
+      RestApiId:!Ref ApiGateway
+      StageName: prod
+
+  # ==========================================
+  # 7. EXPLICIT DEMO RESOURCES (The Security Tests)
+  # ==========================================
+  
+  # A. GCM-22 DEMO: Server Hardening
+  DemoSecureEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.micro
+      ImageId: ami-0c55b159cbfafe1f0
+      SubnetId:!Ref Subnet1
+      MetadataOptions:
+        HttpTokens: required # GCM-22 Compliant (IMDSv2)
+        HttpPutResponseHopLimit: 1
+        HttpEndpoint: enabled
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 8
+            Encrypted: true # GCM-22 Compliant (Encryption)
+
+  # B. GIA-04 DEMO: MFA Enforcement
+  DemoAdminGroup:
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: DemoAdminGroup
+      Policies:
+        - PolicyName: EnforceMFAPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: "*"
+                Resource: "*"
+                Condition:
+                  BoolIfExists:
+                    aws:MultiFactorAuthPresent: "true" # GIA-04 Compliant
+
+  # C. GIA-03 DEMO: SSO Enforcement (Intentionally Vulnerable)
+  # DEMO INSTRUCTION: Uncomment the block below during your demo to simulate a developer 
+  # bypassing SSO and trying to create a static IAM user. Prisma will instantly block the pipeline.
+  # 
+  # VulnerableIAMUser:
+  #   Type: AWS::IAM::User
+  #   Properties:
+  #     UserName: LocalDemoUser

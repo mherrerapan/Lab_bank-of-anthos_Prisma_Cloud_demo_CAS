@@ -1,0 +1,15 @@
+#This control requires EC2 instances to use IMDSv2 (to prevent SSRF attacks) and mandates encrypted EBS block storage.
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  SecureEC2:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.micro
+      ImageId: ami-0c55b159cbfafe1f0
+      MetadataOptions:
+        HttpTokens: required # SECURE: Enforces IMDSv2
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 8
+            Encrypted: true # SECURE: Enforces EBS Encryption

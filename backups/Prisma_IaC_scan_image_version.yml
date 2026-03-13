@@ -1,4 +1,4 @@
-name: Prisma Cloud IaC Scan
+name: Prisma Cloud IaC Scan (Docker Image Version)
 
 on:
   push:
@@ -7,24 +7,25 @@ on:
   pull_request:
     branches:
       - development
-  workflow_dispatch: # Adds a button to run it manually during the demo
+  workflow_dispatch:
 
 jobs:
   kubernetes-scan:
     runs-on: ubuntu-latest
+    # This tells the runner to execute the job inside the Checkov container
+    container:
+      image: bridgecrew/checkov:latest 
+      
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-
-      - name: Install Checkov
-        run: pip install checkov
         
-      - name: Run Prisma Cloud Scan via CLI
+      - name: Run Prisma Cloud Scan via CLI in Container
         env:
-          PRISMA_API_URL: https://api2.prismacloud.io # Verify this matches your specific tenant URL
+          PRISMA_API_URL: https://api2.prismacloud.io 
           BC_SOURCE: githubActions
         run: |
-          checkov -d ${{ github.workspace }}/dockerfile-templates \
+          checkov --directory ${{ github.workspace }}/k8s-manifests \
             --framework kubernetes \
             --quiet \
             --prisma-api-url $PRISMA_API_URL \
