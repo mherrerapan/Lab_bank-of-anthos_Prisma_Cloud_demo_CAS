@@ -24,7 +24,7 @@ jobs:
           PRISMA_API_URL: https://api2.prismacloud.io # Verify this matches your specific tenant URL
           BC_SOURCE: githubActions
         run: |
-          checkov -d ${{ github.workspace }}/dockerfile-templates \
+          checkov -d ${{ github.workspace }}/dockerfile-templates-vulnerable \
             --framework kubernetes \
             --quiet \
             --prisma-api-url $PRISMA_API_URL \
