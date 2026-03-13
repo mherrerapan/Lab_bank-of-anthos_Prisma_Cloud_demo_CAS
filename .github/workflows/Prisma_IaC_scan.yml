@@ -25,7 +25,6 @@ jobs:
           BC_SOURCE: githubActions
         run: |
           checkov -d ${{ github.workspace }}/dockerfile-vulnerable \
-            --framework kubernetes \
             --quiet \
             --prisma-api-url $PRISMA_API_URL \
             --bc-api-key ${{ secrets.PC_API_KEY }} \
