@@ -29,7 +29,7 @@ jobs:
           # --quiet \ Display only failed checks
           # --framework \ # Run on a specific infrastructure#
           # --policy-metadata-filter "policy.label=deloitte_demo_policies_iac" \ # Evaluate a specific group of policies
-          checkov -d ${{ github.workspace }}/CF-templates-GIA-03_SSO_Enforcement \
+          checkov -d ${{ github.workspace }}/CF-templates_GIA-04_Require_MFA \
             --repo-id ${{ github.repository }} \
             --branch ${{ github.ref_name }} \
             --use-enforcement-rules \
