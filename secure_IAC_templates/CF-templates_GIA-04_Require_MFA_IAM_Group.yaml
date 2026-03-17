@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  SecureAdminGroup:
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: SecureAdminGroup
+      Policies:
+        - PolicyName: EnforceMFA
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: "*"
+                Resource: "*"
+                Condition:
+                  BoolIfExists:
+                    aws:MultiFactorAuthPresent: "true" # SECURE: MFA Condition matches policy == true

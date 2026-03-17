@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Secure Identity Deployment (GIA-03 Compliant)
+
+Resources:
+  SecureFederatedRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: DemoSSORole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              # SECURE: Uses an SSO/Federated identity provider instead of a local IAM user
+              Federated: "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"
+            Action: "sts:AssumeRoleWithWebIdentity"

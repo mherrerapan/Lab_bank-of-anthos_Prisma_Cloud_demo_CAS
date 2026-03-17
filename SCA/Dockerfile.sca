@@ -1,0 +1,6 @@
+# This old base image is loaded with critical CVEs
+FROM node:14-alpine 
+
+MAINTAINER devops@demo.com 
+ADD app.py /app.py 
+CMD ["node", "/app.js"]
