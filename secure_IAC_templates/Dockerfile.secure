@@ -3,9 +3,8 @@ LABEL maintainer="devops@demo.com" # SECURE: Uses LABEL
 COPY app.py /app.py # SECURE: Uses COPY
 
 # SECURE: Defines a health check
-HEALTHCHECK --interval=30s --timeout=5s CMD curl -f http://localhost/ |
-
-| exit 1
+HEALTHCHECK --interval=30s --timeout=5s \
+  CMD curl -f http://localhost/ || exit 1
 
 # SECURE: Creates and uses a non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
