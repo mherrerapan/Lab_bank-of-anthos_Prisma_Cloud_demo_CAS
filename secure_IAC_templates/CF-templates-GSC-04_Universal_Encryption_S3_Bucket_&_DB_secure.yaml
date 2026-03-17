@@ -3,7 +3,7 @@ Resources:
   SecureBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName:!Sub "amzn-s3-demo-logging-bucket-${AWS::AccountId}"
+      BucketName: !Sub "amzn-s3-demo-logging-bucket-${AWS::AccountId}"
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -12,13 +12,13 @@ Resources:
   SecureBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
-      Bucket:!Ref SecureBucket
+      Bucket: !Ref SecureBucket
       PolicyDocument:
         Statement:
           - Action: s3:*
             Effect: Deny
             Principal: "*"
-            Resource:!Sub "arn:aws:s3:::${SecureBucket}/*"
+            Resource: !Sub "arn:aws:s3:::${SecureBucket}/*"
             Condition:
               Bool:
                 aws:SecureTransport: "false" # SECURE: Denies non-HTTPS traffic
@@ -27,4 +27,7 @@ Resources:
     Type: AWS::RDS::DBCluster
     Properties:
       Engine: aurora-postgresql
+      EngineVersion: "15.4"
       EnableIAMDatabaseAuthentication: true # SECURE: Enables IAM Auth
+      ManageMasterUserPassword: true
+      MasterUsername: clusteradmin
