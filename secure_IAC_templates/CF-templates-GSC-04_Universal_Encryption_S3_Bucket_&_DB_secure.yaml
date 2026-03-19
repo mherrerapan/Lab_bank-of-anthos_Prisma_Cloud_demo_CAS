@@ -7,7 +7,8 @@ Resources:
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256
+              SSEAlgorithm: aws:kms:dsse
+              KMSMasterKeyID: arn:aws:kms:us-east-1:123456789012:key/a1b2c3d4-5678-90ab-cdef-11111EXAMPLE
               
   SecureBucketPolicy:
     Type: AWS::S3::BucketPolicy
