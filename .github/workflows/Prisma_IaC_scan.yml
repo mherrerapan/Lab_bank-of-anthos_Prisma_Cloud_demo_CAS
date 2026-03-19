@@ -24,12 +24,12 @@ jobs:
           PRISMA_API_URL: https://api2.prismacloud.io # Verify this matches your specific tenant URL
           BC_API_KEY: ${{ secrets.PC_API_KEY }}
           BC_SOURCE: githubActions
-          CKV_POLICY_METADATA_FILTER: "policy.label=deloitte_demo_policies_iac"
+          #CKV_POLICY_METADATA_FILTER: "policy.label=deloitte_demo_policies_iac"
         run: |
           # --quiet \ Display only failed checks
           # --framework \ # Run on a specific infrastructure#
           # --policy-metadata-filter "policy.label=deloitte_demo_policies_iac" \ # Evaluate a specific group of policies
-          checkov -d ${{ github.workspace }}/misconfigured_IAC_templates \
+          checkov -d ${{ github.workspace }}/sca_dockerfile \
             --repo-id ${{ github.repository }} \
             --branch ${{ github.ref_name }} \
             --use-enforcement-rules \
