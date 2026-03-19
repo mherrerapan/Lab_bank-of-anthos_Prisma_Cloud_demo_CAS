@@ -4,7 +4,7 @@ FROM node:14-alpine
 MAINTAINER devops@demo.com 
 
 # VULNERABLE: Hardcoded Secret
-ENV AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+ENV AWS_SECRET_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE
 
 ADD app.py /app.py 
 CMD ["node", "/app.js"]
