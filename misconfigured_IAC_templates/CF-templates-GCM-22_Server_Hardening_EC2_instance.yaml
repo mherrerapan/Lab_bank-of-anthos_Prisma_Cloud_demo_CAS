@@ -10,4 +10,4 @@ Resources:
         - DeviceName: /dev/xvda
           Ebs:
             VolumeSize: 8
-            # VULNERABLE: Encrypted is omitted/false
+            # VULNERABLE: Encrypted is omitted/false#
