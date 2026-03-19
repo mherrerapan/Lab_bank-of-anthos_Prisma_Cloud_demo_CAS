@@ -1,6 +1,9 @@
-FROM alpine:3.18 # SECURE: Specific tag
-LABEL maintainer="devops@demo.com" # SECURE: Uses LABEL
-COPY app.py /app.py # SECURE: Uses COPY
+FROM alpine:3.18 
+# SECURE: Specific tag
+LABEL maintainer="devops@demo.com" 
+# SECURE: Uses LABEL
+COPY app.py /app.py 
+# SECURE: Uses COPY
 
 # SECURE: Defines a health check
 HEALTHCHECK --interval=30s --timeout=5s \
